@@ -39,6 +39,7 @@ app.use('/api/decisions',  createProxyMiddleware({ target: PY_API, changeOrigin:
 app.use('/api/portfolio',  createProxyMiddleware({ target: PY_API, changeOrigin: true }));
 app.use('/api/context',    createProxyMiddleware({ target: PY_API, changeOrigin: true }));
 app.use('/api/data',       createProxyMiddleware({ target: PY_API, changeOrigin: true }));
+app.use('/api/engine',     createProxyMiddleware({ target: PY_API, changeOrigin: true }));
 
 // Health & Metrics
 app.get('/api/health', (req, res) => {

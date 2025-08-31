@@ -16,6 +16,7 @@ import CardFrame from '@/components/CardFrame';
 import { formatAsOf } from '@/lib/staleness';
 import { toPortfolio, toArray } from '@/services/normalize';
 import UniverseSwitcher from '@/components/UniverseSwitcher';
+import EngineStateCard from '@/components/EngineStateCard';
 
 // Helpers to make rendering resilient to undefined data
 const asArray = <T,>(v: T[] | undefined | null): T[] => (Array.isArray(v) ? v : []);
@@ -193,6 +194,7 @@ const DashboardPage: React.FC = () => {
       {/* Market Context Card */}
       <ErrorBoundary>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 auto-rows-fr">
+        <EngineStateCard />
         <CardFrame title="Market Context" asOf={marketContext?.timestamp} right={<Link to="/context" className="text-sm text-primary flex items-center">View details <ChevronRight size={16} /></Link>}>
           {marketContext ? (
             <div className="space-y-4">

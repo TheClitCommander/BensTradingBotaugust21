@@ -169,3 +169,36 @@ The React-based dashboard includes:
    - Added responsive CSS utilities for better layout
    - Improved card components for fluid sizing
    - Enhanced table components for better mobile display
+
+## New Features
+
+1. **Engine State Card**:
+   - Added `/api/engine/state` endpoint to FastAPI backend
+   - Added `/api/engine/toggle` endpoint to control engine state
+   - Added `/api/engine/dev/force_tick` endpoint for testing
+   - Created React component to display engine state and control it
+   - Added to Dashboard page for easy access
+   
+   This card shows:
+   - Current engine running state with toggle switch
+   - Last tick time and next tick ETA
+   - Tick ID for tracing
+   - Interval, total ticks, and uptime
+   - Force tick button for testing
+
+   To test:
+   ```
+   # Start the FastAPI backend with the engine router
+   cd /Users/bendickinson/Desktop/tradingbenbot-complete
+   python run_api.py
+   
+   # In another terminal, start the Node.js API server
+   cd /Users/bendickinson/Desktop/tradingbenbot-complete/live-api
+   ENABLE_STUBS=true PY_API=http://localhost:8000 node server.js
+   
+   # In a third terminal, start the frontend
+   cd /Users/bendickinson/Desktop/tradingbenbot-complete/new-trading-dashboard
+   npm run dev
+   ```
+   
+   Then visit http://localhost:3003 to see the Engine State card in action.
