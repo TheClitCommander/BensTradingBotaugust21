@@ -79,6 +79,7 @@ from trading_bot.api.websocket_endpoint import router as websocket_router
 
 # Import engine router
 from trading_bot.api.routes.engine import router as engine_router
+from trading_bot.api.routes.opportunities import router as opportunities_router
 
 # Import Coinbase API router
 try:
@@ -147,6 +148,9 @@ app.include_router(decisions_router, prefix="/api/policy", tags=["PolicyDecision
 
 # Include the engine router
 app.include_router(engine_router)
+
+# Include the opportunities router
+app.include_router(opportunities_router)
 
 # Import news router
 from trading_bot.api.routers.news import router as news_router
