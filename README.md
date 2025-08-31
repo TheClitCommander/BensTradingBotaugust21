@@ -52,9 +52,11 @@ The API server (live-api) provides:
 - Proxy to Python backend
 - Fallback mechanisms for improved reliability
 
-Two versions are included:
-- `server.js`: Original version
-- `server-fixed.js`: Enhanced version with improved fallbacks and error handling
+Recent fixes to the API server:
+- Fixed handling of nested limit parameters in /api/bars
+- Added proper /api/paper/orders/open endpoint
+- Added proxying of key endpoints to FastAPI backend
+- Added explicit control over synthetic data with ENABLE_STUBS flag
 
 ## Frontend Dashboard
 
@@ -76,23 +78,36 @@ The React-based dashboard includes:
 
 ## Getting Started
 
-1. Start the backend:
-   ```
-   cd trading_bot
-   python main.py
-   ```
+### Setup
 
-2. Start the API server:
+1. Install dependencies:
    ```
    cd live-api
-   export ALLOW_SYNTHETIC_FALLBACK=true
-   node server-fixed.js
+   npm install http-proxy-middleware
+   ```
+
+### Running the System (Explicit & Honest Mode)
+
+1. Start the FastAPI backend (serves the "truth": risk, decisions, portfolio, etc.):
+   ```
+   # from repo root
+   uvicorn trading_bot.api.app:app --reload --port 8000
+   ```
+
+2. Start the Node API server:
+   ```
+   cd live-api
+   
+   # Option 1: With stubs enabled (for development without Python backend)
+   ENABLE_STUBS=true PY_API=http://localhost:8000 node server.js
+   
+   # Option 2: Strict mode (no fake data, requires Python backend)
+   ENABLE_STUBS=false PY_API=http://localhost:8000 node server.js
    ```
 
 3. Start the frontend:
    ```
    cd new-trading-dashboard
-   npm install
    npm run dev
    ```
 
@@ -100,7 +115,7 @@ The React-based dashboard includes:
 
 1. Test API endpoints:
    ```
-   curl -s http://localhost:4000/health | jq
+   curl -s http://localhost:4000/api/health | jq
    curl -s http://localhost:4000/api/data/status | jq
    curl -s -X POST http://localhost:4000/api/dev/ingest-test | jq
    curl -s "http://localhost:4000/api/ingestion/events?limit=1" | jq
@@ -131,21 +146,26 @@ The React-based dashboard includes:
    curl -s http://localhost:4000/api/paper/orders/open | jq
    ```
 
-## Recent Improvements
+## Recent Fixes
 
-1. **Enhanced API Server**:
-   - Added proper ingestion metrics and events endpoints
-   - Added quotes and bars fallbacks that work without providers
-   - Added risk summary and heat stubs
-   - Added decisions stubs and a seed-decision endpoint
-   - Fixed the open orders endpoint
+1. **Fixed 404 for Open Orders**:
+   - Added proper implementation of GET /api/paper/orders/open
+   - Added aliases for compatibility with different UI versions
 
-2. **UI Responsiveness**:
+2. **Fixed 500/502 for /api/risk/, /api/decisions/, etc.**:
+   - Added proper proxying to FastAPI backend
+   - Implemented clear error responses when backend is unavailable
+
+3. **Fixed 502 for /api/bars**:
+   - Fixed handling of nested limit parameters (limit[limit]=30)
+   - Added readNumeric helper to safely parse query parameters
+
+4. **Improved Synthetic Data Handling**:
+   - Added ENABLE_STUBS flag to control when synthetic data is returned
+   - Made it explicit when synthetic data is being used
+   - Returns proper error codes when real data sources are unavailable
+
+5. **UI Responsiveness**:
    - Added responsive CSS utilities for better layout
    - Improved card components for fluid sizing
    - Enhanced table components for better mobile display
-
-3. **New Components**:
-   - DataIngestionCard: Pipeline stages and events visualization
-   - OpenOrdersPanel: Display and management of open orders
-   - Decision Narrative: Human-readable explanations for trade decisions

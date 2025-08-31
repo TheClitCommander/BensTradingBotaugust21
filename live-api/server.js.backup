@@ -2,11 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const dayjs = require('dayjs');
 const { nanoid } = require('nanoid');
-const { createProxyMiddleware } = require('http-proxy-middleware');
-
-// Configuration
-const ENABLE_STUBS = process.env.ENABLE_STUBS === 'true';
-const PY_API = process.env.PY_API || 'http://localhost:8000';
 
 const app = express();
 app.use(cors());
@@ -16,29 +11,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Helper function to safely read numeric query parameters
-function readNumeric(q, defVal) {
-  if (q == null) return defVal;
-  if (typeof q === 'object') {
-    const cand = q.limit ?? q.value ?? Object.values(q)[0];
-    const n = parseInt(String(cand), 10);
-    return Number.isFinite(n) ? n : defVal;
-  }
-  const n = parseInt(String(q), 10);
-  return Number.isFinite(n) ? n : defVal;
-}
-
 // In-memory safety state
 let tradingMode = 'paper';
 let emergencyStopActive = false;
 const asOf = () => new Date().toISOString();
-
-// Proxy routes to FastAPI (add these BEFORE any catch-alls that might shadow)
-app.use('/api/risk',       createProxyMiddleware({ target: PY_API, changeOrigin: true }));
-app.use('/api/decisions',  createProxyMiddleware({ target: PY_API, changeOrigin: true }));
-app.use('/api/portfolio',  createProxyMiddleware({ target: PY_API, changeOrigin: true }));
-app.use('/api/context',    createProxyMiddleware({ target: PY_API, changeOrigin: true }));
-app.use('/api/data',       createProxyMiddleware({ target: PY_API, changeOrigin: true }));
 
 // Health & Metrics
 app.get('/api/health', (req, res) => {
@@ -369,20 +345,6 @@ app.post('/api/paper/orders', (req, res) => {
   }
   res.json({ success: true, trade });
 });
-// Helper function for open orders
-function isOpenStatus(s) {
-  return s === 'accepted' || s === 'replaced' || s === 'pending_cancel';
-}
-
-// Open orders endpoint (add BEFORE the :id parameter route)
-app.get('/api/paper/orders/open', (req, res) => {
-  res.json(paperOrders.filter(o => isOpenStatus(o.status)));
-});
-
-// Friendly aliases so UI fallbacks all work
-app.get('/api/orders/open', (req, res) => res.redirect(307, '/api/paper/orders/open'));
-app.get('/api/paper/open-orders', (req, res) => res.redirect(307, '/api/paper/orders/open'));
-
 app.get('/api/paper/orders/:id', (req, res) => {
   const ord = paperOrders.find(o => o.id === req.params.id);
   if (!ord) return res.status(404).json({ error: 'not found' });
@@ -616,11 +578,6 @@ app.get('/api/news/ticker-sentiment', (req, res) => {
 // Quotes & Bars
 app.get('/api/quotes', (req, res) => {
   const symbols = String(req.query.symbols || '').split(',').filter(Boolean);
-  
-  if (!ENABLE_STUBS) {
-    return res.status(502).json({ error: 'quotes upstream not configured' });
-  }
-  
   const now = asOf();
   const out = symbols.length ? symbols : DEFAULT_UNIVERSE.slice(0, 10); // Use first 10 from universe
   const items = out.map((s) => {
@@ -638,22 +595,17 @@ app.get('/api/quotes', (req, res) => {
       ts: now,
     };
   });
-  res.json({ proxied: false, quotes: items });
+  res.json(items);
 });
 
 app.get('/api/bars', (req, res) => {
-  const symbol = String(req.query.symbol || req.query.symbols || 'AAPL');
+  const symbol = String(req.query.symbol || 'AAPL');
   const timeframe = String(req.query.timeframe || '1Day');
-  const limit = Math.min(readNumeric(req.query.limit, 30), 500);
-  
-  if (!ENABLE_STUBS) {
-    return res.status(502).json({ error: 'bars upstream not configured' });
-  }
-  
+  const limit = Math.min(Number(req.query.limit || 30), 500);
   const now = dayjs();
   const bars = Array.from({ length: limit }).map((_, i) => {
     const t = now.subtract(limit - 1 - i, 'day');
-    const o = 100 + Math.random() * 5,
+    const o = 100 + i,
       c = o + 0.6,
       h = c + 0.5,
       l = o - 0.5,
